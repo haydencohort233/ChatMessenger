@@ -1,0 +1,12 @@
+.signout-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .signout-container button {
+    background-color: #f44336;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+  }  
