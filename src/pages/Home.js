@@ -1,7 +1,7 @@
 // Home.js
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SignOut from '../components/SignOut/SignOut';
 
 const Home = () => {
@@ -25,6 +25,9 @@ const Home = () => {
       {/* Your Home page content goes here */}
       <h1>Welcome to the Home Page!</h1>
       <SignOut />
+      <button>
+        <Link to="/settings">Settings</Link>
+      </button>
     </div>
   );
 };
