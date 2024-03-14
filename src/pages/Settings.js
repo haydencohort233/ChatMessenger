@@ -9,8 +9,10 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState('');
   const [error, setError] = useState('');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +25,13 @@ const Settings = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    // Update display name in state when it changes in Firebase Auth
+    if (user) {
+      setNewDisplayName(user.displayName || '');
+    }
+  }, [user]);
 
   const handleDeleteAccount = async () => {
     const isConfirmed = window.confirm(
@@ -79,14 +88,14 @@ const Settings = () => {
 
   const handleAvatarChange = (avatar) => {
     setSelectedAvatar(avatar);
-    // Update user's photoURL in Firebase Auth
+    // Update users photoURL in Firebase
     if (user) {
-      const avatarPath = `/images/${avatar}.png`;
+      const avatarPath = `/images/${avatar}.png`; // Avatars location
       user.updateProfile({
         photoURL: avatarPath,
       }).then(() => {
         console.log('Avatar updated successfully');
-        setShowAvatarModal(false); // Close the modal after selecting an avatar
+        setShowAvatarModal(false); // Close after selecting an avatar
       }).catch((error) => {
         console.error('Error updating avatar:', error.message);
         setError('Failed to update avatar. Please try again.');
@@ -94,22 +103,42 @@ const Settings = () => {
     }
   };
 
+  const handleDisplayNameChange = () => {
+    const newName = window.prompt('Enter your new display name:');
+    if (newName !== null && newName !== '') {
+      // Update user display name in Firebase
+      if (user) {
+        user.updateProfile({
+          displayName: newName,
+        }).then(() => {
+          console.log('Display name updated successfully');
+          setNewDisplayName(newName); // Update display name in state
+          setShowDisplayNameModal(false); // Close after updating
+        }).catch((error) => {
+          console.error('Error updating display name:', error.message);
+          setError('Failed to update display name. Please try again.');
+        });
+      }
+    }
+  };
+
   return (
     <div className="settings-container">
       <h2>User Information</h2>
       {loading ? (
-        <p>Loading...</p>
+        <p>Loading User Information...</p>
       ) : user ? (
         <div>
           <div className="user-info">
             <p>
               <strong>Avatar Photo:</strong> {user.photoURL ? <img src={user.photoURL} alt="Avatar" /> : 'N/A'}
-            </p>
-            <button type="button" onClick={() => setShowAvatarModal(true)}>
+              <button type="button" onClick={() => setShowAvatarModal(true)}>
               Change Avatar
             </button>
+            </p>
             <p>
-              <strong>Display Name:</strong> {user.displayName || 'N/A'}
+              <strong>Display Name:</strong> {user.displayName || 'N/A'}{' '}
+              <button onClick={handleDisplayNameChange}>Change Display Name</button>
             </p>
             <p>
               <strong>Email Address:</strong> {user.email}
@@ -145,21 +174,19 @@ const Settings = () => {
             </div>
           </div>
           <div className="settings-buttons">
-            <button className="delete-button" type="button" onClick={handleDeleteAccount}>
+            <button className="delete-button" onClick={handleDeleteAccount}>
               Delete Account
             </button>
             <button type="button" onClick={handleSignOut}>
               Sign Out
             </button>
-            <button>
-            <Link to="/home">Back to Home</Link>
-            </button>
+            <button type="button"><Link to="/home">Back to Home</Link></button>
           </div>
         </div>
       ) : (
         <p>User not found</p>
       )}
-      {/* Avatar Selection Modal */}
+      {/* Avatar selection modal */}
       {showAvatarModal && (
         <div className="modal">
           <div className="modal-content">
