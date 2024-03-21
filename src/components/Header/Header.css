@@ -1,0 +1,30 @@
+.header {
+    width: 800px;
+    height: 200px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin: 20px auto; /* Adjust margin as needed */
+  }
+  
+  .header__left,
+  .header__center,
+  .header__right {
+    height: 100%; /* Adjust as needed */
+    border-right: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .header__left {
+    width: 30%; /* Adjust as needed */
+  }
+  
+  .header__center {
+    width: 80%; /* Adjust as needed */
+  }
+  
+  .header__right {
+    width: 30%; /* Adjust as needed */
+  }
+  

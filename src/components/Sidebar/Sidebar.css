@@ -1,0 +1,18 @@
+.sidebar {
+    width: 500px;
+    height: 800px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin: 0 auto;
+  }
+  
+  .sidebar__header {
+    height: 100px; /* Adjust as needed */
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .sidebar__chats {
+    height: calc(100% - 100px); /* Adjust to leave space for header */
+    overflow-y: auto; /* Enable vertical scrolling if needed */
+  }
+  

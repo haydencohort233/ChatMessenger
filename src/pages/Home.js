@@ -3,6 +3,8 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SignOut from '../components/SignOut/SignOut';
+import Header from '../components/Header/Header';
+import Sidebar from '../components/Sidebar/Sidebar';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -25,6 +27,8 @@ const Home = () => {
       {/* Your Home page content goes here */}
       <h1>Welcome to the Home Page!</h1>
       <SignOut />
+      <Header />
+      <Sidebar />
       <button>
         <Link to="/settings">Settings</Link>
       </button>

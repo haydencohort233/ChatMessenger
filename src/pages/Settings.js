@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from '../firebase';
+import { auth, storage } from '../firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import './Settings.css';
 
@@ -8,11 +8,9 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
   const [error, setError] = useState('');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,7 +25,7 @@ const Settings = () => {
   }, []);
 
   useEffect(() => {
-    // Update display name in state when it changes in Firebase Auth
+    // Update display name without having to reload
     if (user) {
       setNewDisplayName(user.displayName || '');
     }
@@ -86,20 +84,91 @@ const Settings = () => {
     }
   };
 
-  const handleAvatarChange = (avatar) => {
-    setSelectedAvatar(avatar);
-    // Update users photoURL in Firebase
+  const handleAvatarChange = async (avatar) => {
+    // Update users photoURL
     if (user) {
-      const avatarPath = `/images/${avatar}.png`; // Avatars location
-      user.updateProfile({
-        photoURL: avatarPath,
-      }).then(() => {
-        console.log('Avatar updated successfully');
-        setShowAvatarModal(false); // Close after selecting an avatar
-      }).catch((error) => {
-        console.error('Error updating avatar:', error.message);
-        setError('Failed to update avatar. Please try again.');
-      });
+      if (avatar.startsWith('avatar')) {
+        const avatarPath = `/images/${avatar}.png`; // Avatars location
+        try {
+          await user.updateProfile({ photoURL: avatarPath });
+          console.log('Avatar updated successfully');
+          setShowAvatarModal(false); // Close after selecting an avatar
+        } catch (error) {
+          console.error('Error updating avatar:', error.message);
+          setError('Failed to update avatar. Please try again.');
+        }
+      } else {
+        // Handle custom avatar selection
+        const file = avatar;
+        const allowedTypes = ['image/jpeg', 'image/png'];
+        const maxSize = 5 * 1024 * 1024; // File size limited to 5MB
+        const reader = new FileReader();
+  
+        reader.onloadend = async () => {
+          if (allowedTypes.includes(file.type) && file.size <= maxSize) {
+            try {
+              // Upload the file to Firebase Storage
+              const storageRef = storage.ref(`avatars/${user.uid}/${file.name}`);
+              await storageRef.put(file);
+  
+              // Get the download URL of the uploaded file
+              const downloadURL = await storageRef.getDownloadURL();
+  
+              // Update user's photoURL with the download URL
+              await user.updateProfile({ photoURL: downloadURL });
+  
+              console.log('Custom avatar updated successfully');
+              setShowAvatarModal(false); // Close the modal
+            } catch (error) {
+              console.error('Error updating custom avatar:', error.message);
+              setError('Failed to update custom avatar. Please try again.');
+            }
+          } else {
+            setError('Invalid file type or size. Please choose a valid image file (JPEG/PNG) under 5MB.');
+          }
+        };
+  
+        if (file) {
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  };
+
+  const handleCustomAvatarChange = async (e) => {
+    const file = e.target.files[0]; // Get the selected file
+    const allowedTypes = ['image/jpeg', 'image/png']; // Allowed file types
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      // Check if file type and size are valid
+      if (allowedTypes.includes(file.type) && file.size <= maxSize) {
+        try {
+          // Upload the file to Firebase Storage
+          const storageRef = storage.ref(`avatars/${user.uid}/${file.name}`);
+          await storageRef.put(file);
+
+          // Get the download URL of the uploaded file
+          const downloadURL = await storageRef.getDownloadURL();
+
+          // Update user's photoURL with the download URL
+          await user.updateProfile({ photoURL: downloadURL });
+
+          console.log('Custom avatar updated successfully');
+          setShowAvatarModal(false); // Close the modal
+        } catch (error) {
+          console.error('Error updating custom avatar:', error.message);
+          setError('Failed to update custom avatar. Please try again.');
+        }
+      } else {
+        // Display error message if file type or size is invalid
+        setError('Invalid file type or size. Please choose a valid image file (JPEG/PNG) under 5MB.');
+      }
+    };
+
+    if (file) {
+      reader.readAsDataURL(file);
     }
   };
 
@@ -113,7 +182,6 @@ const Settings = () => {
         }).then(() => {
           console.log('Display name updated successfully');
           setNewDisplayName(newName); // Update display name in state
-          setShowDisplayNameModal(false); // Close after updating
         }).catch((error) => {
           console.error('Error updating display name:', error.message);
           setError('Failed to update display name. Please try again.');
@@ -121,6 +189,7 @@ const Settings = () => {
       }
     }
   };
+  
 
   return (
     <div className="settings-container">
@@ -131,10 +200,10 @@ const Settings = () => {
         <div>
           <div className="user-info">
             <p>
-              <strong>Avatar Photo:</strong> {user.photoURL ? <img src={user.photoURL} alt="Avatar" /> : 'N/A'}
+              <strong>Avatar Photo:</strong> {user.photoURL ? <img src={user.photoURL} className="user-avatar" alt="Avatar" /> : 'N/A'}
               <button type="button" onClick={() => setShowAvatarModal(true)}>
-              Change Avatar
-            </button>
+                Change Avatar
+              </button>
             </p>
             <p>
               <strong>Display Name:</strong> {user.displayName || 'N/A'}{' '}
@@ -186,26 +255,44 @@ const Settings = () => {
       ) : (
         <p>User not found</p>
       )}
-      {/* Avatar selection modal */}
-      {showAvatarModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Select Avatar</h2>
-            <div className="avatar-selection">
-              <button onClick={() => handleAvatarChange('avatar1')}>
-                <img src="/images/avatar1.png" alt="Avatar 1" />
-              </button>
-              <button onClick={() => handleAvatarChange('avatar2')}>
-                <img src="/images/avatar2.png" alt="Avatar 2" />
-              </button>
-              <button onClick={() => handleAvatarChange('avatar3')}>
-                <img src="/images/avatar3.png" alt="Avatar 3" />
-              </button>
+        {/* Avatar selection modal */}
+        {showAvatarModal && (
+          <div className="modal">
+            <div className="modal-content">
+              <h2>Select Avatar</h2>
+              <div className="avatar-selection">
+                <img
+                  src="/images/avatar1.png"
+                  alt="Avatar 1"
+                  width="256"
+                  height="256"
+                  onClick={() => handleAvatarChange('avatar1')}
+                />
+                <div className="avatar-overlay">Female Avatar</div>
+                <img
+                  src="/images/avatar2.png"
+                  alt="Avatar 2"
+                  width="256"
+                  height="256"
+                  onClick={() => handleAvatarChange('avatar2')}
+                />
+                <div className="avatar-overlay">Male Avatar</div>
+                <label htmlFor="custom-avatar-input">
+                  <img src="/images/avatarprev.png" alt="Browse" />
+                  <div className="avatar-overlay">Upload Custom Avatar</div>
+                  <input
+                    id="custom-avatar-input"
+                    type="file"
+                    accept="image/jpeg, image/png"
+                    onChange={handleCustomAvatarChange}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+              <button className="cancel-button" onClick={() => setShowAvatarModal(false)}>Cancel</button>
             </div>
-            <button className="cancel-button" onClick={() => setShowAvatarModal(false)}>Cancel</button>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };
